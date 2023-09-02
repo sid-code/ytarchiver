@@ -72,8 +72,8 @@
                   description = ''
                     The cron spec that describes when the channel should be archived.
                   '';
-                  example = "00 00 * * *";
-                  default = "00 00 * * *";
+                  example = "*-*-* 00:00";
+                  default = "*-*-* 00:00";
                 };
                 outputDirName = mkOption {
                   type = types.nullOr types.str;
@@ -89,6 +89,25 @@
         };
       };
       config = mkIf cfg.enable {
+        systemd.targets.ytarchiver-archive-initialized = {
+          description = "Archive directory is initialized.";
+          wants = ["ytarchiver-init-archive.service"];
+        };
+        systemd.timers =
+          mapAttrs' (
+            name: chcfg: {
+              name = "ytarchiver-timer-${name}";
+              value = {
+                wantedBy = ["timers.target"];
+                wants = ["ytarchiver-archive-initialized.target"];
+                timerConfig = {
+                  OnCalendar = chcfg.cronSpec;
+                  Unit = "ytarchiver-archive-${name}.service";
+                };
+              };
+            }
+          )
+          cfg.channels;
         systemd.services =
           {
             ytarchiver-init-archive = {
@@ -123,7 +142,7 @@
             in {
               name = "ytarchiver-archive-${name}";
               value = {
-                wants = ["network.target"];
+                wants = ["network.target" "ytarchiver-archive-initialized.target"];
                 serviceConfig = {
                   Type = "oneshot";
                   ExecStart = "${
