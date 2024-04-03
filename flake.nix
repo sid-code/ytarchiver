@@ -23,7 +23,7 @@
             channel="$1"
             savepath="$2"
             mkdir -p "$savepath"
-            yt-dlp "https://www.youtube.com/@$channel" \
+            yt-dlp "https://www.youtube.com/$channel" \
               --download-archive "$savepath/archive" \
               -o "$savepath/"'%(title)s.%(ext)s'
           '';
